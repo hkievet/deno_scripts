@@ -2,29 +2,9 @@ function convertUint8ArrayToString(utf8array: Uint8Array): string {
   return new TextDecoder().decode(utf8array);
 }
 
-export async function getGitVerion(): Promise<string> {
+async function getOutput(command: string) {
   const process = Deno.run({
-    cmd: "git --version".split(" "),
-    stdout: "piped",
-  });
-  await process.status();
-  const gitVersionBytes = await process.output();
-  return convertUint8ArrayToString(gitVersionBytes);
-}
-
-export async function getNpmVersion(): Promise<string> {
-  const process = Deno.run({
-    cmd: "npm --version".split(" "),
-    stdout: "piped",
-  });
-  await process.status();
-  const gitVersionBytes = await process.output();
-  return convertUint8ArrayToString(gitVersionBytes);
-}
-
-export async function getYarnVersion(): Promise<string> {
-  const process = Deno.run({
-    cmd: "npm --version".split(" "),
+    cmd: command.split(" "),
     stdout: "piped",
   });
   await process.status();
@@ -37,9 +17,22 @@ function printSuccessVersion(programName: string, version: string) {
   Deno.stdout.write((new TextEncoder()).encode(outputString));
 }
 
-const gitVersion = await getGitVerion();
-printSuccessVersion("git", gitVersion);
-const npmVersion = await getNpmVersion();
-printSuccessVersion("npm", npmVersion);
-const yarnVersion = await getYarnVersion();
-printSuccessVersion("yarn", yarnVersion);
+interface IProgramVersionLookup {
+  name: string;
+  versionCommand: string;
+}
+
+const programs = [
+  { name: "git", versionCommand: "git --version" },
+  { name: "npm", versionCommand: "npm -v" },
+  { name: "yarn", versionCommand: "yarn -v" },
+];
+
+async function validateProgramVersions() {
+  programs.forEach(async (program: IProgramVersionLookup) => {
+    const versionOutput = await getOutput(program.versionCommand);
+    printSuccessVersion(program.name, versionOutput);
+  });
+}
+
+await validateProgramVersions();
