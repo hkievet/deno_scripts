@@ -187,6 +187,10 @@ function stripEmptyIntervals(
   }
 }
 
+/**
+ * INTERVAL MANAGER
+ */
+
 class IntervalItemManager {
   private allRequests: IBrowsingHistoryRequest[] = [];
   private intervals: ITimeInterval[] = [];
@@ -205,7 +209,7 @@ class IntervalItemManager {
   }
 
   // analyzes allItems based on interval
-  private makeChartLine(intervalIndex: number) {
+  public makeChartLine(intervalIndex: number, label: string) {
     if (
       intervalIndex > this.intervalEventBreakdown.length - 1 ||
       intervalIndex < 0
@@ -214,7 +218,7 @@ class IntervalItemManager {
     }
     const eventsForInterval = this.intervalEventBreakdown[intervalIndex];
     // print piece of information requested add pprint
-    return ` -------- ${eventsForInterval.length}`;
+    return ` -------- ${eventsForInterval.length} ${label}`;
   }
 
   public print(): void {
@@ -222,7 +226,30 @@ class IntervalItemManager {
       const dateRepresentation = `${formatDate(interval.startDate)} to ${
         formatDate(interval.endDate)
       }`;
-      const intervalDataDisplay = this.makeChartLine(i);
+      const intervalDataDisplay = this.makeChartLine(i, "requests");
+      const headerLine = `${dateRepresentation} ${intervalDataDisplay}`;
+      printLine(headerLine);
+    });
+    return;
+  }
+
+  public printDimensions(dimension: IAnalysisDimension): void {
+    this.intervals.forEach((interval, i) => {
+      const dateRepresentation = `${formatDate(interval.startDate)} to ${
+        formatDate(interval.endDate)
+      }`;
+      const subsetItems = breakdownByDimension(
+        dimension,
+        this.intervalEventBreakdown[i],
+      );
+      const subsetItemManager = new IntervalItemManager(
+        subsetItems,
+        [interval],
+      );
+      const intervalDataDisplay = subsetItemManager.makeChartLine(
+        0,
+        `requests for containing ${dimension.name}`,
+      );
       const headerLine = `${dateRepresentation} ${intervalDataDisplay}`;
       printLine(headerLine);
     });
@@ -231,16 +258,10 @@ class IntervalItemManager {
 }
 
 function breakdownByDimension(
-  dimensions: IAnalysisDimension[],
+  dimension: IAnalysisDimension,
   historyEvents: IBrowsingHistoryRequest[],
-) {
-  return dimensions.map((d) => {
-    return {
-      name: d.name,
-      bucket: d.bucket,
-      items: filterLinks(d.test, historyEvents),
-    };
-  });
+): IBrowsingHistoryRequest[] {
+  return filterLinks(dimension.test, historyEvents);
 }
 
 const INTERVALS = {
@@ -292,10 +313,19 @@ class FFBrowsingHistoryCli {
   constructor() {}
 
   public mainMenu: IUserSelection = {
-    prompt: "Welcome to Program, press enter to see a year breakdown",
+    prompt: "Main Menu (m, w, d):",
     keywordActions: {
-      "*": () => {
+      "m": () => {
         return this.showMonthlyBreakdown();
+      },
+      "w": () => {
+        return this.showWeeklyBreakdown();
+      },
+      "d": () => {
+        return this.showDailyBreakdown();
+      },
+      "s": () => {
+        return this.showFilteredBreakdown();
       },
     },
   };
@@ -313,25 +343,44 @@ class FFBrowsingHistoryCli {
     return this.mainMenu;
   }
 
-  private showMonthlyBreakdown(): IUserSelection {
-    const items = this.data;
+  private showBreakdown(
+    intervalSize: number,
+    intervalCount: number,
+    items: IBrowsingHistoryRequest[],
+  ): IUserSelection {
     sortItemsByDate(items);
     const intervals = makeTimeIntervals(
       new Date(Date.now()),
-      new Date(INTERVALS.m),
-      12,
+      new Date(intervalSize),
+      intervalCount,
     );
-
-    const itemsAnalyzedByDimension = dimensions.map((d) => {
-      return {
-        name: d.name,
-        bucket: d.bucket,
-        items: filterLinks(d.test, items),
-      };
-    });
-
     const iim = new IntervalItemManager(items, intervals);
     iim.print();
+    return this.mainMenu;
+  }
+
+  private showWeeklyBreakdown(): IUserSelection {
+    return this.showBreakdown(INTERVALS.w, 12, this.data);
+  }
+
+  private showMonthlyBreakdown(): IUserSelection {
+    return this.showBreakdown(INTERVALS.m, 12, this.data);
+  }
+
+  private showDailyBreakdown(): IUserSelection {
+    return this.showBreakdown(INTERVALS.d, 12, this.data);
+  }
+
+  private showFilteredBreakdown(): IUserSelection {
+    const intervals = makeTimeIntervals(
+      new Date(Date.now()),
+      new Date(INTERVALS.w),
+      12,
+    );
+    const iim = new IntervalItemManager(this.data, intervals);
+    iim.printDimensions(dimensions[0]);
+    iim.printDimensions(dimensions[1]);
+    iim.printDimensions(dimensions[2]);
     return this.mainMenu;
   }
 
