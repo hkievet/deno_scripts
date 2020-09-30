@@ -411,5 +411,4 @@ class FFBrowsingHistoryCli {
 const ENV_FILE_PATH = "../docs/places.sqlite.json";
 let cli = new FFBrowsingHistoryCli();
 await cli.loadData(ENV_FILE_PATH);
-printBranding();
 cli.startEventLoop();
