@@ -12,9 +12,23 @@ async function getOutput(command: string) {
   return convertUint8ArrayToString(yarnVersionBytes);
 }
 
+function logString(string: string) {
+  Deno.stdout.write((new TextEncoder()).encode(string));
+}
+
 function printSuccessVersion(programName: string, version: string) {
+  // todo handle when version input is multiple lines
+  if (version.split("\n").length > 2) {
+    const lines = version.split("\n");
+    version = lines.map((l, i) => {
+      if (i !== 0) {
+        return `\t${l}`;
+      }
+      return l;
+    }).slice(0, -1).join("\n");
+  }
   const outputString = `✅ ${programName} : ${version}`;
-  Deno.stdout.write((new TextEncoder()).encode(outputString));
+  logString(outputString);
 }
 
 interface IProgramVersionLookup {
@@ -23,12 +37,13 @@ interface IProgramVersionLookup {
 }
 
 const programs = [
+  { name: "brew", versionCommand: "brew -v" },
   { name: "git", versionCommand: "git --version" },
   { name: "npm", versionCommand: "npm -v" },
   { name: "yarn", versionCommand: "yarn -v" },
 ];
 
-async function validateProgramVersions() {
+export async function validateProgramVersions() {
   programs.forEach(async (program: IProgramVersionLookup) => {
     const versionOutput = await getOutput(program.versionCommand);
     printSuccessVersion(program.name, versionOutput);
