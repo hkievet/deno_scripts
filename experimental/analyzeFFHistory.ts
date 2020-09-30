@@ -36,7 +36,7 @@ function formatDate(date: Date) {
 }
 
 function preprocessHistoryData(
-  historyJSONString: string,
+  historyJSONString: string
 ): IBrowsingHistoryRequest[] {
   const history = JSON.parse(historyJSONString);
   // gotta divide by 1000 or it's just broken
@@ -52,7 +52,7 @@ function preprocessHistoryData(
 
 function filterLinks(
   filter: string,
-  historyItems: IBrowsingHistoryRequest[],
+  historyItems: IBrowsingHistoryRequest[]
 ): IBrowsingHistoryRequest[] {
   return historyItems.filter((item: IBrowsingHistoryRequest) => {
     return item.url.indexOf(filter) !== -1;
@@ -109,13 +109,13 @@ interface ITimeInterval {
 function makeTimeIntervals(
   startTime: Date,
   intervalSpacing: Date,
-  numberOfIntervals: number,
+  numberOfIntervals: number
 ): ITimeInterval[] {
   const intervals: ITimeInterval[] = [];
   let currentIndex = startTime;
   for (let i = 0; i < numberOfIntervals; i++) {
     let nextIndex = new Date(
-      currentIndex.valueOf() - intervalSpacing.valueOf(),
+      currentIndex.valueOf() - intervalSpacing.valueOf()
     );
     intervals.push({
       startDate: nextIndex,
@@ -129,14 +129,16 @@ function makeTimeIntervals(
 // obviously very crude
 function breakdownItems(
   intervals: ITimeInterval[],
-  items: IBrowsingHistoryRequest[],
+  items: IBrowsingHistoryRequest[]
 ): IBrowsingHistoryRequest[][] {
   // put each item in a bucket
   const itemBuckets: IBrowsingHistoryRequest[][] = intervals.map((i) => []);
   items.forEach((item) => {
     const index = intervals.findIndex((interval) => {
-      return (interval.startDate.valueOf() <= item.visitDate.valueOf()) &&
-        (item.visitDate.valueOf() < interval.endDate.valueOf());
+      return (
+        interval.startDate.valueOf() <= item.visitDate.valueOf() &&
+        item.visitDate.valueOf() < interval.endDate.valueOf()
+      );
     });
     if (index !== -1) {
       itemBuckets[index].push(item);
@@ -147,9 +149,8 @@ function breakdownItems(
 
 function printItemsByDate(
   intervals: ITimeInterval[],
-  items: IBrowsingHistoryRequest[][],
-) {
-}
+  items: IBrowsingHistoryRequest[][]
+) {}
 
 function printLine(s: string) {
   console.log(s);
@@ -160,7 +161,7 @@ function printLine(s: string) {
 
 function stripEmptyIntervals(
   allIntervals: ITimeInterval[],
-  eventBreakdown: IBrowsingHistoryRequest[][],
+  eventBreakdown: IBrowsingHistoryRequest[][]
 ) {
   if (!allIntervals.length || !eventBreakdown.length) {
     return [];
@@ -197,13 +198,13 @@ class IntervalItemManager {
   private intervalEventBreakdown: IBrowsingHistoryRequest[][] = [];
   public constructor(
     allRequests: IBrowsingHistoryRequest[],
-    intervals: ITimeInterval[],
+    intervals: ITimeInterval[]
   ) {
     this.intervalEventBreakdown = breakdownItems(intervals, allRequests);
     this.allRequests = allRequests;
     const newIntervals = stripEmptyIntervals(
       intervals,
-      this.intervalEventBreakdown,
+      this.intervalEventBreakdown
     );
     this.intervals = newIntervals;
   }
@@ -223,9 +224,9 @@ class IntervalItemManager {
 
   public print(): void {
     this.intervals.forEach((interval, i) => {
-      const dateRepresentation = `${formatDate(interval.startDate)} to ${
-        formatDate(interval.endDate)
-      }`;
+      const dateRepresentation = `${formatDate(
+        interval.startDate
+      )} to ${formatDate(interval.endDate)}`;
       const intervalDataDisplay = this.makeChartLine(i, "requests");
       const headerLine = `${dateRepresentation} ${intervalDataDisplay}`;
       printLine(headerLine);
@@ -235,20 +236,19 @@ class IntervalItemManager {
 
   public printDimensions(dimension: IAnalysisDimension): void {
     this.intervals.forEach((interval, i) => {
-      const dateRepresentation = `${formatDate(interval.startDate)} to ${
-        formatDate(interval.endDate)
-      }`;
+      const dateRepresentation = `${formatDate(
+        interval.startDate
+      )} to ${formatDate(interval.endDate)}`;
       const subsetItems = breakdownByDimension(
         dimension,
-        this.intervalEventBreakdown[i],
+        this.intervalEventBreakdown[i]
       );
-      const subsetItemManager = new IntervalItemManager(
-        subsetItems,
-        [interval],
-      );
+      const subsetItemManager = new IntervalItemManager(subsetItems, [
+        interval,
+      ]);
       const intervalDataDisplay = subsetItemManager.makeChartLine(
         0,
-        `requests for containing ${dimension.name}`,
+        `requests for containing ${dimension.name}`
       );
       const headerLine = `${dateRepresentation} ${intervalDataDisplay}`;
       printLine(headerLine);
@@ -259,16 +259,16 @@ class IntervalItemManager {
 
 function breakdownByDimension(
   dimension: IAnalysisDimension,
-  historyEvents: IBrowsingHistoryRequest[],
+  historyEvents: IBrowsingHistoryRequest[]
 ): IBrowsingHistoryRequest[] {
   return filterLinks(dimension.test, historyEvents);
 }
 
 const INTERVALS = {
-  "m": 4 * 7 * 27 * 60 * 60 * 1000,
-  "w": 7 * 27 * 60 * 60 * 1000,
-  "d": 27 * 60 * 60 * 1000,
-  "h": 60 * 60 * 1000,
+  m: 4 * 7 * 27 * 60 * 60 * 1000,
+  w: 7 * 27 * 60 * 60 * 1000,
+  d: 27 * 60 * 60 * 1000,
+  h: 60 * 60 * 1000,
 };
 
 async function scratchpad() {
@@ -279,7 +279,7 @@ async function scratchpad() {
   const intervals = makeTimeIntervals(
     new Date(Date.now()),
     new Date(INTERVALS.d),
-    30,
+    30
   );
 
   const itemsAnalyzedByDimension = dimensions.map((d) => {
@@ -315,16 +315,16 @@ class FFBrowsingHistoryCli {
   public mainMenu: IUserSelection = {
     prompt: "Main Menu (m, w, d):",
     keywordActions: {
-      "m": () => {
+      m: () => {
         return this.showMonthlyBreakdown();
       },
-      "w": () => {
+      w: () => {
         return this.showWeeklyBreakdown();
       },
-      "d": () => {
+      d: () => {
         return this.showDailyBreakdown();
       },
-      "s": () => {
+      s: () => {
         return this.showFilteredBreakdown();
       },
     },
@@ -346,13 +346,13 @@ class FFBrowsingHistoryCli {
   private showBreakdown(
     intervalSize: number,
     intervalCount: number,
-    items: IBrowsingHistoryRequest[],
+    items: IBrowsingHistoryRequest[]
   ): IUserSelection {
     sortItemsByDate(items);
     const intervals = makeTimeIntervals(
       new Date(Date.now()),
       new Date(intervalSize),
-      intervalCount,
+      intervalCount
     );
     const iim = new IntervalItemManager(items, intervals);
     iim.print();
@@ -370,12 +370,11 @@ class FFBrowsingHistoryCli {
   private showDailyBreakdown(): IUserSelection {
     return this.showBreakdown(INTERVALS.d, 12, this.data);
   }
-
   private showFilteredBreakdown(): IUserSelection {
     const intervals = makeTimeIntervals(
       new Date(Date.now()),
       new Date(INTERVALS.w),
-      12,
+      12
     );
     const iim = new IntervalItemManager(this.data, intervals);
     iim.printDimensions(dimensions[0]);
